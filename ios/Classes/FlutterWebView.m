@@ -6,6 +6,102 @@
 #import "FLTWKNavigationDelegate.h"
 #import "JavaScriptChannelHandler.h"
 
+@interface FlutterGestureWorkaround : UIGestureRecognizer <UIGestureRecognizerDelegate>
+
+@end
+
+@implementation FlutterGestureWorkaround {
+    id _flutterForwardGestureRecognizer;
+}
+
+- (id)flutterForwardGestureRecognizer {
+    if (_flutterForwardGestureRecognizer) {
+        return _flutterForwardGestureRecognizer;
+    }
+    Class klass = NSClassFromString(@"ForwardingGestureRecognizer");
+    if (klass == nil) {
+        NSLog(@"ForwardingGestureRecognizer not found, workaround will not work");
+        return nil;
+    }
+
+    NSPredicate *pred = [NSPredicate predicateWithBlock:^BOOL(id  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings) {
+        return [evaluatedObject isKindOfClass:klass];
+    }];
+    UIView *parent = self.view.superview;
+    id recognizer = [[parent.gestureRecognizers filteredArrayUsingPredicate:pred] firstObject];
+    while(parent != NULL && recognizer == NULL) {
+        parent = parent.superview;
+        recognizer = [[parent.gestureRecognizers filteredArrayUsingPredicate:pred] firstObject];
+    }
+
+    if (recognizer == NULL) {
+        NSLog(@"Could not find the ForwardingGestureRecognizer instance, workaround will not work");
+        return NULL;
+    }
+
+    _flutterForwardGestureRecognizer = recognizer;
+    return recognizer;
+}
+
+- (int)flutterForwardGestureRecognizerTouchCount {
+    id value = [self.flutterForwardGestureRecognizer valueForKey: @"_currentTouchPointersCount"];
+    if ([value isKindOfClass:[NSArray class]]) {
+        value = [value firstObject];
+    }
+    if ([value isKindOfClass:[NSNumber class]]) {
+        return (int)[value integerValue];
+    }
+    return 0;
+}
+
+- (instancetype)initWithTarget:(id)target action:(SEL)action {
+    self = [super initWithTarget:target action:action];
+    if (self) {
+      self.delegate = self;
+    }
+    return self;
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    self.state = UIGestureRecognizerStateBegan;
+}
+
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    if (self.numberOfTouches == touches.count) {
+        self.state = UIGestureRecognizerStateEnded;
+
+
+        if (self.flutterForwardGestureRecognizerTouchCount != 0) {
+            [self.flutterForwardGestureRecognizer touchesCancelled:nil withEvent:nil];
+        }
+    }
+}
+
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    if (self.numberOfTouches == 0) {
+        self.state = UIGestureRecognizerStateCancelled;
+    }
+}
+
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {}
+
+- (BOOL)shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return false;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return true;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return false;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return false;
+}
+@end
+
 @implementation FLTWebViewFactory {
   NSObject<FlutterBinaryMessenger>* _messenger;
 }
@@ -14,6 +110,7 @@
   self = [super init];
   if (self) {
     _messenger = messenger;
+
   }
   return self;
 }
@@ -29,7 +126,8 @@
                                                                          viewIdentifier:viewId
                                                                               arguments:args
                                                                         binaryMessenger:_messenger];
-  return webviewController;
+    [webviewController.view addGestureRecognizer:[FlutterGestureWorkaround new]];
+    return webviewController;
 }
 
 @end
