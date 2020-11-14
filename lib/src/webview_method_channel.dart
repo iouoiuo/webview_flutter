@@ -138,6 +138,14 @@ class MethodChannelWebViewPlatform implements WebViewPlatformController {
       'y': y,
     });
   }
+  
+  @override
+  //iOS only
+  Future<void> setUserTouchEnable(int enable) {
+    return _channel.invokeMethod<void>('setUserTouchEnable', <String, int>{
+      'enable': enable,
+    });
+  }
 
   @override
   Future<void> scrollBy(int x, int y) {
