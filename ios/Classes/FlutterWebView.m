@@ -256,9 +256,17 @@
     [self getScrollX:call result:result];
   } else if ([[call method] isEqualToString:@"getScrollY"]) {
     [self getScrollY:call result:result];
+  } else if ([[call method] isEqualToString:@"setUserTouchEnable"]) {
+      [self setUserTouchEnable:call result:result];
   } else {
     result(FlutterMethodNotImplemented);
   }
+}
+
+- (void)setUserTouchEnable:(FlutterMethodCall*)call result:(FlutterResult)result{
+    NSDictionary* arguments = [call arguments];
+    BOOL enable = [arguments[@"enable"] boolValue];
+    [_webView setUserInteractionEnabled:enable];
 }
 
 - (void)onUpdateSettings:(FlutterMethodCall*)call result:(FlutterResult)result {
