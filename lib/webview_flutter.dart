@@ -749,6 +749,11 @@ class WebViewController {
     return _webViewPlatformController.scrollTo(x, y);
   }
 
+   //iOS only
+  Future<void> setUserTouchEnable(int enable) {
+    return _webViewPlatformController.setUserTouchEnable(enable);
+  }
+  
   /// Move the scrolled position of this view.
   ///
   /// The parameters `x` and `y` specify the amount of WebView pixels to scroll by horizontally and vertically respectively.
