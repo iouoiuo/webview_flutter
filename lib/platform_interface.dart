@@ -293,7 +293,11 @@ abstract class WebViewPlatformController {
     throw UnimplementedError(
         "WebView scrollTo is not implemented on the current platform");
   }
-
+  
+  Future<void> setUserTouchEnable(int enable) {
+    throw UnimplementedError("WebView setUserTouchEnable is not implemented on the current platform");
+  }
+  
   /// Move the scrolled position of this view.
   ///
   /// The parameters `x` and `y` specify the amount of WebView pixels to scroll by.
